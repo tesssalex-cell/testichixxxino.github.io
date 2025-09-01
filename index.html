@@ -50,7 +50,7 @@
     
     
     
-    .logo-wrap{position:absolute; width:200px; height:200px; left:50%; top:0; transform:translate(-50%, -28%) translate3d(var(--tx,0), var(--ty,0), 0); z-index:4}    
+    .logo-wrap{position:absolute; width:200px; height:200px; left:50%; top:0; transform:translate(-50%, -28%) translate3d(var(--tx,0), var(--ty,0), 0); z-index:4; will-change:transform}     
     .logo{width:100%; height:100%; border-radius:36px; display:block; object-fit:cover; filter: drop-shadow(0 22px 44px rgba(134,247,255,.22)); animation:stone-float 6s ease-in-out infinite, stone-glow 3.8s ease-in-out infinite}
     /* Орбиты вокруг камня */
     .logo-wrap::before, .logo-wrap::after{content:""; position:absolute; top:50%; left:50%; width:12px; height:12px; border-radius:50%; background:radial-gradient(circle at 30% 30%, var(--a), rgba(255,255,255,.25)); box-shadow:0 0 18px rgba(134,247,255,.7), 0 0 32px rgba(168,139,255,.35); transform:translate(-50%,-50%) rotate(0deg) translateX(132px); opacity:.9}
@@ -249,7 +249,7 @@
       box-shadow:0 10px 28px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,.06); backdrop-filter:saturate(120%) blur(6px);
       color:#eaf6ff; font-weight:700; letter-spacing:.04em; text-transform:none; opacity:0; transform:translateY(8px) scale(.98);
       transition:opacity .24s ease, transform .24s cubic-bezier(.2,.7,.2,1); max-width:90%; text-align:center; line-height:1.35}
-    $1$2
+    
   </style>
 </head>
 <body>
@@ -413,11 +413,27 @@
     addEventListener('resize', resize, {passive:true}); resize(); syncStarsTheme(); requestAnimationFrame(render);
     // Parallax for hero stone (mouse)
     (function(){
-      const wrap = document.querySelector('.logo-wrap'); if(!wrap) return; let on=false;
-      function move(e){ if(!on) return; const cx=innerWidth/2, cy=innerHeight/3; const dx=(e.clientX-cx)/cx, dy=(e.clientY-cy)/cy; const mx=dx*16, my=dy*10; wrap.style.setProperty('--tx', mx.toFixed(1)+'px'); wrap.style.setProperty('--ty', my.toFixed(1)+'px'); }
-      function enter(){ on = matchMedia('(pointer:fine)').matches; }
-      function leave(){ wrap.style.setProperty('--tx','0px'); wrap.style.setProperty('--ty','0px'); }
-      addEventListener('mousemove', move, {passive:true}); addEventListener('mouseenter', enter, {passive:true}); addEventListener('mouseleave', leave, {passive:true});
+      const wrap = document.querySelector('.logo-wrap'); if(!wrap) return;
+      const fine = matchMedia('(pointer:fine)');
+      let enabled = fine.matches;
+      function move(e){
+        if(!enabled) return;
+        const r = wrap.getBoundingClientRect();
+        const cx = innerWidth/2;
+        const cy = Math.max(r.top + r.height*0.5, innerHeight*0.28);
+        const dx = (e.clientX - cx) / (innerWidth/2);
+        const dy = (e.clientY - cy) / (innerHeight/2);
+        const mx = dx * 18; // amplitude X
+        const my = dy * 12; // amplitude Y
+        wrap.style.setProperty('--tx', mx.toFixed(1)+'px');
+        wrap.style.setProperty('--ty', my.toFixed(1)+'px');
+      }
+      function reset(){ wrap.style.setProperty('--tx','0px'); wrap.style.setProperty('--ty','0px'); }
+      window.addEventListener('pointermove', move, {passive:true});
+      window.addEventListener('blur', reset);
+      document.addEventListener('mouseleave', reset);
+      if(fine.addEventListener){ fine.addEventListener('change', ()=>{ enabled = fine.matches; reset(); }); }
+      else if(fine.addListener){ fine.addListener(()=>{ enabled = fine.matches; reset(); }); }
     })();
     // Копирование CA
     const CA ='1111111111111111111111111111111111111111111'; // замените на реальный
